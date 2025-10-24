@@ -207,7 +207,8 @@ def infer_date_columns(df: pd.DataFrame) -> Dict[str, str]:
     # Common patterns for date columns
     patterns = {
         'StartDate': ['start', 'startdate', 'start_date', 'begin', 'begindate'],
-        'EndDate': ['end', 'enddate', 'end_date', 'finish', 'finishdate'],
+        'CustomerRequestDate': ['customerrequest', 'customer_request', 'end', 'enddate', 'end_date', 'finish', 'finishdate'],
+        'ShipDate': ['ship', 'shipdate', 'ship_date', 'shipping'],
         'DueDate': ['due', 'duedate', 'due_date', 'deadline']
     }
     
@@ -239,7 +240,7 @@ def parse_dates(df: pd.DataFrame) -> Tuple[pd.DataFrame, list]:
     df = df.rename(columns=rename_dict)
     
     # Parse each date column
-    for date_col in ['StartDate', 'EndDate', 'DueDate']:
+    for date_col in ['StartDate', 'CustomerRequestDate', 'ShipDate', 'DueDate']:
         if date_col in df.columns:
             try:
                 # Try to parse dates
@@ -328,11 +329,11 @@ def add_calculated_fields(df: pd.DataFrame) -> pd.DataFrame:
     else:
         df['DaysLate'] = 0
     
-    # Calculate DurationDays
-    if 'StartDate' in df.columns and 'EndDate' in df.columns:
-        duration_mask = df['StartDate'].notna() & df['EndDate'].notna()
+    # Calculate DurationDays - using CustomerRequestDate instead of EndDate
+    if 'StartDate' in df.columns and 'CustomerRequestDate' in df.columns:
+        duration_mask = df['StartDate'].notna() & df['CustomerRequestDate'].notna()
         df.loc[duration_mask, 'DurationDays'] = (
-            df.loc[duration_mask, 'EndDate'] - df.loc[duration_mask, 'StartDate']
+            df.loc[duration_mask, 'CustomerRequestDate'] - df.loc[duration_mask, 'StartDate']
         ).dt.days
     
     return df
@@ -348,9 +349,10 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with standardized columns
     """
-    # Column mapping for common variations - ADDED MHS JOB #
+    # Column mapping for common variations - UPDATED WITH NEW NAMES
     column_mapping = {
         'mhsjob#': 'JobID',
+        'mhsjob': 'JobID',
         'mhs job#': 'JobID',
         'mhs job #': 'JobID',
         'jobid': 'JobID',
@@ -362,13 +364,22 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
         'jobname': 'JobName',
         'job_name': 'JobName',
         'name': 'JobName',
-        'workcenter': 'WorkCenter',
-        'work_center': 'WorkCenter',
-        'resource': 'WorkCenter',
-        'machine': 'WorkCenter',
-        'owner': 'Owner',
-        'assignee': 'Owner',
-        'assigned_to': 'Owner',
+        'branch': 'Branch',
+        'workcenter': 'Branch',
+        'work_center': 'Branch',
+        'resource': 'Branch',
+        'machine': 'Branch',
+        'customername': 'CustomerName',
+        'customer_name': 'CustomerName',
+        'owner': 'CustomerName',
+        'assignee': 'CustomerName',
+        'assigned_to': 'CustomerName',
+        'customerrequestdate': 'CustomerRequestDate',
+        'customer_request_date': 'CustomerRequestDate',
+        'enddate': 'CustomerRequestDate',
+        'end_date': 'CustomerRequestDate',
+        'shipdate': 'ShipDate',
+        'ship_date': 'ShipDate',
         'priority': 'Priority',
         'quantity': 'Quantity',
         'qty': 'Quantity',
@@ -380,7 +391,7 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
     # Apply mapping
     rename_dict = {}
     for col in df.columns:
-        col_lower = col.lower().replace(' ', '').replace('#', '')
+        col_lower = col.lower().replace(' ', '').replace('_', '').replace('#', '')
         if col_lower in column_mapping:
             rename_dict[col] = column_mapping[col_lower]
     
@@ -390,11 +401,12 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
     required_cols = {
         'JobID': lambda: df.index.astype(str),
         'JobName': '',
-        'WorkCenter': 'Unassigned',
-        'Owner': 'Unassigned',
+        'Branch': 'Unassigned',
+        'CustomerName': 'Unassigned',
         'Priority': 'Medium',
         'Status': 'Planned',
         'Quantity': 1,
+        'ShipDate': '',
         'Notes': ''
     }
     

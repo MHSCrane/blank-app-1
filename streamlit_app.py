@@ -1,6 +1,10 @@
 """
-Manufacturing Schedule Dashboard
-Main Streamlit application for visualizing and managing manufacturing schedules.
+Manufacturing Schedule Dashboard - MHS Crane Edition
+Minimal iOS-Inspired UI with Navy Blue and Gold branding
+
+LOGO INSTRUCTIONS:
+To add the real MHS logo, replace line ~160 with your logo image path:
+<img src="assets/mhs_logo.png" style="height: 50px; margin-right: 20px;">
 """
 
 import streamlit as st
@@ -15,60 +19,320 @@ from data import fetch_schedule_data, write_to_google_sheets, DataSourceConfig, 
 
 # Page configuration
 st.set_page_config(
-    page_title="Manufacturing Schedule Dashboard",
+    page_title="MHS Manufacturing Dashboard",
     page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
-st.markdown("""
-    <style>
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-    }
-    .status-planned {
-        background-color: #e3f2fd;
-        color: #1976d2;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-weight: bold;
-    }
-    .status-in-progress {
-        background-color: #fff3e0;
-        color: #f57c00;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-weight: bold;
-    }
-    .status-complete {
-        background-color: #e8f5e9;
-        color: #388e3c;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-weight: bold;
-    }
-    .status-hold {
-        background-color: #ffebee;
-        color: #d32f2f;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-weight: bold;
-    }
-    .overdue-row {
-        background-color: #ffebee !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # Timezone
 TZ = pytz.timezone('America/New_York')
 
+# ============================================================================
+# iOS-INSPIRED MINIMAL DESIGN SYSTEM
+# ============================================================================
+
+NAVY = "#1a2332"
+GOLD = "#d4af37"
+BACKGROUND = "#f5f5f7"  # iOS system background
+CARD_BG = "#ffffff"
+BORDER_LIGHT = "#d2d2d7"  # iOS border color
+TEXT_PRIMARY = "#1d1d1f"  # iOS text
+TEXT_SECONDARY = "#86868b"  # iOS secondary text
+SHADOW_SUBTLE = "0 1px 3px rgba(0,0,0,0.04)"
+SHADOW_ELEVATED = "0 2px 8px rgba(0,0,0,0.08)"
+
+st.markdown(f"""
+    <style>
+    /* iOS System Font Stack */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * {{
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }}
+    
+    /* Global Background */
+    .stApp {{
+        background: {BACKGROUND};
+    }}
+    
+    .block-container {{
+        padding-top: 0.5rem;
+        padding-bottom: 2rem;
+        max-width: 100%;
+    }}
+    
+    /* Header Bar - iOS Navigation Bar Style */
+    .mhs-header {{
+        background: {NAVY};
+        backdrop-filter: saturate(180%) blur(20px);
+        padding: 1rem 2rem;
+        border-radius: 0;
+        margin: -1rem -1rem 1.5rem -1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+    }}
+    
+    .mhs-logo-placeholder {{
+        width: 140px;
+        height: 44px;
+        background: {GOLD};
+        border: 1.5px solid rgba(0,0,0,0.2);
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Arial Black', sans-serif;
+        font-size: 22px;
+        font-weight: 900;
+        color: #000000;
+        letter-spacing: 5px;
+        margin-right: 14px;
+    }}
+    
+    .mhs-title {{
+        color: #ffffff !important;
+        font-size: 1.375rem;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: -0.4px;
+    }}
+    
+    .mhs-datetime {{
+        color: rgba(255,255,255,0.65);
+        font-size: 0.8125rem;
+        font-weight: 400;
+        letter-spacing: -0.1px;
+    }}
+    
+    /* KPI Cards - iOS Style */
+    .kpi-card {{
+        background: {CARD_BG};
+        border: 0.5px solid {BORDER_LIGHT};
+        border-radius: 10px;
+        padding: 1.125rem 1rem;
+        text-align: center;
+        box-shadow: {SHADOW_SUBTLE};
+        transition: all 0.15s ease-out;
+    }}
+    
+    .kpi-card:hover {{
+        transform: translateY(-1px);
+        box-shadow: {SHADOW_ELEVATED};
+    }}
+    
+    .kpi-label {{
+        color: {TEXT_SECONDARY};
+        font-size: 0.6875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 0.375rem;
+    }}
+    
+    .kpi-value {{
+        color: {TEXT_PRIMARY};
+        font-size: 1.875rem;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.5px;
+    }}
+    
+    .kpi-value-gold {{
+        color: {GOLD};
+    }}
+    
+    .kpi-delta {{
+        color: {TEXT_SECONDARY};
+        font-size: 0.6875rem;
+        margin-top: 0.25rem;
+        font-weight: 400;
+        letter-spacing: -0.1px;
+    }}
+    
+    /* Section Headers - iOS Style */
+    .section-header {{
+        background: transparent;
+        color: {TEXT_PRIMARY};
+        padding: 0.5rem 0;
+        font-size: 1.0625rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.3px;
+    }}
+    
+    .section-content {{
+        background: {CARD_BG};
+        border: 0.5px solid {BORDER_LIGHT};
+        border-radius: 10px;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        box-shadow: {SHADOW_SUBTLE};
+    }}
+    
+    /* Status Chips - iOS Pill Style */
+    .status-chip {{
+        display: inline-block;
+        padding: 0.1875rem 0.625rem;
+        border-radius: 12px;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.1px;
+    }}
+    
+    .status-planned {{
+        background: #f5f5f7;
+        color: {TEXT_SECONDARY};
+    }}
+    
+    .status-in-progress {{
+        background: {NAVY};
+        color: white;
+    }}
+    
+    .status-complete {{
+        background: #e5e5ea;
+        color: #48484a;
+    }}
+    
+    .status-hold {{
+        background: {GOLD};
+        color: {NAVY};
+    }}
+    
+    /* Table - Minimal Borders */
+    .stDataFrame {{
+        border-radius: 10px;
+        border: 0.5px solid {BORDER_LIGHT};
+        overflow: hidden;
+        box-shadow: {SHADOW_SUBTLE};
+    }}
+    
+    /* Sidebar - Clean */
+    [data-testid="stSidebar"] {{
+        background: {CARD_BG};
+        border-right: 0.5px solid {BORDER_LIGHT};
+    }}
+    
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {{
+        color: {TEXT_PRIMARY};
+        font-weight: 600;
+        font-size: 0.9375rem;
+        letter-spacing: -0.2px;
+    }}
+    
+    /* Buttons - iOS System Style */
+    .stButton > button {{
+        background: {NAVY};
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.4375rem 1.125rem;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        letter-spacing: -0.1px;
+        transition: all 0.15s ease-out;
+        box-shadow: {SHADOW_SUBTLE};
+    }}
+    
+    .stButton > button:hover {{
+        background: #2a3542;
+        transform: scale(1.01);
+    }}
+    
+    .stButton > button:active {{
+        transform: scale(0.98);
+    }}
+    
+    /* Input Fields - iOS Style */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select,
+    .stMultiSelect > div > div,
+    .stDateInput > div > div > input {{
+        border: 0.5px solid {BORDER_LIGHT};
+        border-radius: 8px;
+        font-size: 0.8125rem;
+        background: {CARD_BG};
+        padding: 0.5rem 0.75rem;
+        transition: all 0.15s ease-out;
+    }}
+    
+    .stTextInput > div > div > input:focus,
+    .stSelectbox > div > div > select:focus {{
+        border-color: {NAVY};
+        box-shadow: 0 0 0 3px rgba(26, 35, 50, 0.1);
+    }}
+    
+    /* Metrics Override */
+    [data-testid="stMetric"] {{
+        background: transparent;
+    }}
+    
+    [data-testid="stMetricValue"] {{
+        color: {TEXT_PRIMARY};
+        font-size: 1.875rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }}
+    
+    [data-testid="stMetricLabel"] {{
+        color: {TEXT_SECONDARY};
+        font-size: 0.6875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }}
+    
+    /* Remove Streamlit Branding */
+    #MainMenu {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    header {{visibility: hidden;}}
+    
+    /* Typography Polish */
+    h1, h2, h3, h4, h5, h6 {{
+        color: {TEXT_PRIMARY};
+        font-weight: 600;
+        letter-spacing: -0.4px;
+    }}
+    
+    p {{
+        color: {TEXT_PRIMARY};
+        letter-spacing: -0.1px;
+    }}
+    
+    /* Dividers - Hairline */
+    hr {{
+        border: none;
+        border-top: 0.5px solid {BORDER_LIGHT};
+        margin: 1.5rem 0;
+    }}
+    </style>
+""", unsafe_allow_html=True)
+
+
+def render_header():
+    """Render iOS-style navigation bar header"""
+    current_time = datetime.now(TZ).strftime("%B %d, %Y • %I:%M %p")
+    
+    st.markdown(f"""
+        <div class="mhs-header">
+            <div style="display: flex; align-items: center;">
+                <div class="mhs-logo-placeholder">MHS</div>
+                <h1 class="mhs-title">Manufacturing Schedule</h1>
+            </div>
+            <div class="mhs-datetime">{current_time}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+
 def render_kpi_cards(df: pd.DataFrame) -> None:
-    """Render KPI metric cards at the top of the dashboard."""
+    """Render iOS-style KPI cards"""
     today = datetime.now(TZ).date()
     week_end = today + timedelta(days=7)
     
@@ -76,7 +340,6 @@ def render_kpi_cards(df: pd.DataFrame) -> None:
     total_jobs = len(df)
     in_progress = len(df[df['Status'] == 'In-Progress']) if 'Status' in df.columns else 0
     
-    # Due this week
     if 'DueDate' in df.columns and 'Status' in df.columns:
         due_this_week_mask = (
             (df['DueDate'].notna()) & 
@@ -88,147 +351,175 @@ def render_kpi_cards(df: pd.DataFrame) -> None:
     else:
         due_this_week = 0
     
-    # Overdue
     overdue = len(df[df['DaysLate'] > 0]) if 'DaysLate' in df.columns else 0
     
-    # Average lead time (for completed jobs)
     if 'Status' in df.columns and 'DurationDays' in df.columns:
         completed = df[df['Status'] == 'Complete'].copy()
-        if len(completed) > 0:
-            avg_lead_time = completed['DurationDays'].mean()
-        else:
-            avg_lead_time = 0
+        avg_lead_time = completed['DurationDays'].mean() if len(completed) > 0 else 0
     else:
         avg_lead_time = 0
     
-    # Display in columns
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        st.metric("Total Jobs", total_jobs)
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-label">Total Jobs</div>
+                <div class="kpi-value">{total_jobs}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
     with col2:
-        st.metric("In Progress", in_progress)
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-label">In Progress</div>
+                <div class="kpi-value">{in_progress}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
     with col3:
-        st.metric("Due This Week", due_this_week, 
-                  delta=None if due_this_week == 0 else f"{due_this_week} jobs")
+        delta_text = f"{due_this_week} jobs" if due_this_week > 0 else "None"
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-label">Due This Week</div>
+                <div class="kpi-value">{due_this_week}</div>
+                <div class="kpi-delta">{delta_text}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
     with col4:
-        st.metric("Overdue", overdue, 
-                  delta=f"-{overdue}" if overdue > 0 else "0",
-                  delta_color="inverse")
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-label">Overdue</div>
+                <div class="kpi-value kpi-value-gold">{overdue}</div>
+                <div class="kpi-delta">{"⚠️ Attention" if overdue > 0 else "✓ On Track"}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
     with col5:
-        st.metric("Avg Lead Time", f"{avg_lead_time:.1f} days")
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Lead Time</div>
+                <div class="kpi-value">{avg_lead_time:.1f}</div>
+                <div class="kpi-delta">days</div>
+            </div>
+        """, unsafe_allow_html=True)
 
 
 def render_gantt_chart(df: pd.DataFrame) -> None:
-    """Render interactive Gantt chart/timeline."""
+    """Render minimal Gantt chart"""
+    st.markdown('<div class="section-header">📅 Production Timeline</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-content">', unsafe_allow_html=True)
+    
     if df.empty:
-        st.warning("No data available for Gantt chart.")
+        st.warning("No data available for timeline visualization.")
+        st.markdown('</div>', unsafe_allow_html=True)
         return
     
-    # Check required columns
-    if 'StartDate' not in df.columns or 'EndDate' not in df.columns:
-        st.info("StartDate and EndDate columns are required for timeline view.")
+    if 'StartDate' not in df.columns or 'CustomerRequestDate' not in df.columns:
+        st.info("StartDate and Customer Request Date columns are required for timeline view.")
+        st.markdown('</div>', unsafe_allow_html=True)
         return
     
-    # Prepare data for Gantt
-    gantt_df = df[
-        (df['StartDate'].notna()) & 
-        (df['EndDate'].notna())
-    ].copy()
+    gantt_df = df[(df['StartDate'].notna()) & (df['CustomerRequestDate'].notna())].copy()
     
     if gantt_df.empty:
-        st.info("No jobs with valid start and end dates for timeline view.")
+        st.info("No jobs with valid dates for timeline view.")
+        st.markdown('</div>', unsafe_allow_html=True)
         return
     
-    # Use WorkCenter if available, otherwise use a default
-    y_axis = 'WorkCenter' if 'WorkCenter' in gantt_df.columns else 'JobID'
+    y_axis = 'Branch' if 'Branch' in gantt_df.columns else 'JobID'
     color_by = 'Status' if 'Status' in gantt_df.columns else None
     
-    # Prepare hover data
-    hover_cols = []
-    for col in ['JobID', 'JobName', 'Owner', 'Quantity', 'Priority']:
-        if col in gantt_df.columns:
-            hover_cols.append(col)
+    hover_cols = [col for col in ['JobID', 'JobName', 'CustomerName', 'Quantity', 'Priority'] 
+                  if col in gantt_df.columns]
     
-    # Create timeline
     fig = px.timeline(
         gantt_df,
         x_start='StartDate',
-        x_end='EndDate',
+        x_end='CustomerRequestDate',
         y=y_axis,
         color=color_by,
         hover_data=hover_cols if hover_cols else None,
-        title='Manufacturing Schedule Timeline',
         color_discrete_map={
-            'Planned': '#1976d2',
-            'In-Progress': '#f57c00',
-            'Complete': '#388e3c',
-            'Hold': '#d32f2f'
+            'Planned': '#98989d',
+            'In-Progress': NAVY,
+            'Complete': '#d1d1d6',
+            'Hold': GOLD
         } if color_by else None
     )
     
-    # Add today marker
     today = datetime.now(TZ)
     fig.add_vline(
-        x=today.timestamp() * 1000,  # Plotly uses milliseconds
+        x=today.timestamp() * 1000,
         line_dash="dash",
-        line_color="red",
+        line_color=GOLD,
+        line_width=1.5,
         annotation_text="Today",
         annotation_position="top"
     )
     
-    # Update layout
     fig.update_layout(
         height=500,
         xaxis_title="Timeline",
         yaxis_title=y_axis,
         showlegend=True,
-        hovermode='closest'
+        hovermode='closest',
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="-apple-system, BlinkMacSystemFont, sans-serif", size=11, color=TEXT_PRIMARY),
+        legend=dict(
+            bgcolor=CARD_BG,
+            bordercolor=BORDER_LIGHT,
+            borderwidth=0.5
+        ),
+        margin=dict(l=20, r=20, t=20, b=20)
     )
     
     fig.update_yaxes(categoryorder='category ascending')
     
     st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_editable_table(df: pd.DataFrame, config: DataSourceConfig) -> pd.DataFrame:
-    """Render editable data table with save functionality."""
-    st.subheader("📋 Job List (Editable)")
+    """Render minimal editable table"""
+    st.markdown('<div class="section-header">📋 Job Management Console</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-content">', unsafe_allow_html=True)
     
     if df.empty:
         st.info("No jobs match the current filters.")
+        st.markdown('</div>', unsafe_allow_html=True)
         return df
     
-    # Show editing options only for service account mode
     if config.source_type != 'service_account':
-        st.warning("⚠️ Editing requires Service Account authentication. Currently in read-only mode (Public CSV).")
+        st.warning("⚠️ Read-only mode: Service Account required for editing.")
     
-    # Prepare display dataframe
     display_df = df.copy()
     
-    # Format dates for display/editing - keep as strings
-    date_cols = ['StartDate', 'EndDate', 'DueDate']
+    date_cols = ['StartDate', 'CustomerRequestDate', 'ShipDate', 'DueDate']
     for col in date_cols:
         if col in display_df.columns and pd.api.types.is_datetime64_any_dtype(display_df[col]):
             display_df[col] = display_df[col].dt.strftime('%Y-%m-%d')
     
-    # Select columns to display
     preferred_cols = [
-        'JobID', 'JobName', 'WorkCenter', 'Owner', 'Priority', 
-        'Status', 'Quantity', 'StartDate', 'EndDate', 'DueDate', 'Notes'
+        'JobID', 'JobName', 'Branch', 'CustomerName', 'Priority', 
+        'Status', 'Quantity', 'StartDate', 'CustomerRequestDate', 'ShipDate', 'DueDate', 'Notes'
     ]
     display_cols = [col for col in preferred_cols if col in display_df.columns]
     
     if not display_cols:
         display_cols = list(display_df.columns)
     
-    # Editable data editor
     edited_df = st.data_editor(
         display_df[display_cols],
         use_container_width=True,
-        num_rows="dynamic",  # Allow adding/deleting rows
+        num_rows="dynamic",
         hide_index=True,
         column_config={
+            "JobID": st.column_config.TextColumn("MHS Job #"),
+            "Branch": st.column_config.TextColumn("Branch"),
+            "CustomerName": st.column_config.TextColumn("Customer Name"),
             "Status": st.column_config.SelectboxColumn(
                 "Status",
                 options=["Planned", "In-Progress", "Complete", "Hold"],
@@ -239,83 +530,72 @@ def render_editable_table(df: pd.DataFrame, config: DataSourceConfig) -> pd.Data
                 options=["Low", "Medium", "High", "Critical"],
                 required=True,
             ),
-            "StartDate": st.column_config.TextColumn(
-                "Start Date",
-                help="Format: YYYY-MM-DD",
-            ),
-            "EndDate": st.column_config.TextColumn(
-                "End Date",
-                help="Format: YYYY-MM-DD",
-            ),
-            "DueDate": st.column_config.TextColumn(
-                "Due Date",
-                help="Format: YYYY-MM-DD",
-            ),
-            "Quantity": st.column_config.NumberColumn(
-                "Quantity",
-                min_value=0,
-                step=1,
-            ),
+            "StartDate": st.column_config.TextColumn("Start Date", help="YYYY-MM-DD"),
+            "CustomerRequestDate": st.column_config.TextColumn("Customer Request Date", help="YYYY-MM-DD"),
+            "ShipDate": st.column_config.TextColumn("Ship Date", help="YYYY-MM-DD"),
+            "DueDate": st.column_config.TextColumn("Due Date", help="YYYY-MM-DD"),
+            "Quantity": st.column_config.NumberColumn("Quantity", min_value=0, step=1),
         }
     )
     
-    # Save button
     col1, col2, col3 = st.columns([1, 1, 4])
     
     with col1:
         if st.button("💾 Save Changes", type="primary", disabled=(config.source_type != 'service_account')):
             if config.source_type == 'service_account':
                 try:
-                    # Write back to Google Sheets
                     success = write_to_google_sheets(
                         config.spreadsheet_id,
                         config.worksheet_name,
                         edited_df
                     )
                     if success:
-                        st.success("✅ Changes saved successfully!")
+                        st.success("✅ Changes saved!")
                         st.cache_data.clear()
                         st.rerun()
                 except Exception as e:
-                    st.error(f"❌ Error saving changes: {str(e)}")
-            else:
-                st.error("Service Account authentication required for editing.")
+                    st.error(f"❌ Error: {str(e)}")
     
     with col2:
-        if st.button("🔄 Discard Changes"):
+        if st.button("🔄 Discard"):
             st.rerun()
     
+    st.markdown('</div>', unsafe_allow_html=True)
     return edited_df
 
 
 def render_add_job_form(config: DataSourceConfig, df: pd.DataFrame):
-    """Render form to add a new job."""
-    st.subheader("➕ Add New Job")
+    """Render minimal add job form"""
+    st.markdown('<div class="section-header">➕ Add New Job</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-content">', unsafe_allow_html=True)
     
     if config.source_type != 'service_account':
-        st.warning("⚠️ Adding jobs requires Service Account authentication.")
+        st.warning("⚠️ Service Account required for adding jobs.")
+        st.markdown('</div>', unsafe_allow_html=True)
         return
     
     with st.form("add_job_form"):
         col1, col2 = st.columns(2)
         
         with col1:
-            job_id = st.text_input("MHS JOB #*", placeholder="e.g., MHS-001")
+            job_id = st.text_input("MHS Job #*", placeholder="e.g., MHS-001")
             job_name = st.text_input("Job Name", placeholder="e.g., Widget Assembly")
-            work_center = st.text_input("Work Center", value="Unassigned")
-            owner = st.text_input("Owner", value="Unassigned")
+            branch = st.text_input("Branch", value="Unassigned")
+            customer_name = st.text_input("Customer Name", value="Unassigned")
             
         with col2:
             priority = st.selectbox("Priority", ["Low", "Medium", "High", "Critical"], index=1)
             status = st.selectbox("Status", ["Planned", "In-Progress", "Complete", "Hold"])
             quantity = st.number_input("Quantity", min_value=1, value=1, step=1)
         
-        col3, col4, col5 = st.columns(3)
+        col3, col4, col5, col6 = st.columns(4)
         with col3:
             start_date = st.date_input("Start Date")
         with col4:
-            end_date = st.date_input("End Date")
+            customer_request_date = st.date_input("Customer Request Date")
         with col5:
+            ship_date = st.date_input("Ship Date")
+        with col6:
             due_date = st.date_input("Due Date")
         
         notes = st.text_area("Notes", placeholder="Additional information...")
@@ -324,58 +604,54 @@ def render_add_job_form(config: DataSourceConfig, df: pd.DataFrame):
         
         if submitted:
             if not job_id:
-                st.error("MHS JOB # is required!")
+                st.error("MHS Job # is required!")
             else:
-                # Create new row
                 new_row = {
                     'JobID': job_id,
                     'JobName': job_name,
-                    'WorkCenter': work_center,
-                    'Owner': owner,
+                    'Branch': branch,
+                    'CustomerName': customer_name,
                     'Priority': priority,
                     'Status': status,
                     'Quantity': quantity,
                     'StartDate': start_date.strftime('%Y-%m-%d'),
-                    'EndDate': end_date.strftime('%Y-%m-%d'),
+                    'CustomerRequestDate': customer_request_date.strftime('%Y-%m-%d'),
+                    'ShipDate': ship_date.strftime('%Y-%m-%d'),
                     'DueDate': due_date.strftime('%Y-%m-%d'),
                     'Notes': notes
                 }
                 
-                # Append to dataframe
                 new_df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 
                 try:
-                    # Write back to Google Sheets
                     success = write_to_google_sheets(
-                        config.spreadsheet_id,
-                        config.worksheet_name,
-                        new_df
+                        config.spreadsheet_id, config.worksheet_name, new_df
                     )
                     if success:
-                        st.success(f"✅ Job {job_id} added successfully!")
+                        st.success(f"✅ Job {job_id} added!")
                         st.cache_data.clear()
                         st.rerun()
                 except Exception as e:
-                    st.error(f"❌ Error adding job: {str(e)}")
+                    st.error(f"❌ Error: {str(e)}")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
-    """Apply sidebar filters to dataframe."""
-    st.sidebar.header("📊 Filters")
+    """Apply sidebar filters"""
+    st.sidebar.markdown(f'<h2 style="color: {TEXT_PRIMARY}; font-size: 0.9375rem; font-weight: 600;">⚙️ Filters</h2>', unsafe_allow_html=True)
     
     filtered_df = df.copy()
     
-    # Date range filter
     if 'StartDate' in df.columns and df['StartDate'].notna().any():
         min_date = df['StartDate'].min().date()
         max_date = df['StartDate'].max().date()
         
         date_range = st.sidebar.date_input(
-            "Date Range (Start Date)",
+            "Date Range",
             value=(min_date, max_date),
             min_value=min_date,
-            max_value=max_date,
-            help="Filter jobs by start date range"
+            max_value=max_date
         )
         
         if len(date_range) == 2:
@@ -385,65 +661,39 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
                 (filtered_df['StartDate'].dt.date <= end)
             ]
     
-    # Status filter
     if 'Status' in df.columns:
         statuses = df['Status'].unique().tolist()
         selected_statuses = st.sidebar.multiselect(
-            "Status",
-            options=statuses,
-            default=statuses,
-            help="Filter by job status"
+            "Status", options=statuses, default=statuses
         )
         filtered_df = filtered_df[filtered_df['Status'].isin(selected_statuses)]
     
-    # Work Center filter
-    if 'WorkCenter' in df.columns:
-        work_centers = ['All'] + sorted(df['WorkCenter'].unique().tolist())
-        selected_wc = st.sidebar.selectbox(
-            "Work Center",
-            options=work_centers,
-            help="Filter by work center/resource"
-        )
-        if selected_wc != 'All':
-            filtered_df = filtered_df[filtered_df['WorkCenter'] == selected_wc]
+    if 'Branch' in df.columns:
+        branches = ['All'] + sorted(df['Branch'].unique().tolist())
+        selected_branch = st.sidebar.selectbox("Branch", options=branches)
+        if selected_branch != 'All':
+            filtered_df = filtered_df[filtered_df['Branch'] == selected_branch]
     
-    # Owner filter
-    if 'Owner' in df.columns:
-        owners = ['All'] + sorted(df['Owner'].unique().tolist())
-        selected_owner = st.sidebar.selectbox(
-            "Owner",
-            options=owners,
-            help="Filter by job owner"
-        )
-        if selected_owner != 'All':
-            filtered_df = filtered_df[filtered_df['Owner'] == selected_owner]
+    if 'CustomerName' in df.columns:
+        customers = ['All'] + sorted(df['CustomerName'].unique().tolist())
+        selected_customer = st.sidebar.selectbox("Customer Name", options=customers)
+        if selected_customer != 'All':
+            filtered_df = filtered_df[filtered_df['CustomerName'] == selected_customer]
     
-    # Priority filter
     if 'Priority' in df.columns:
         priorities = ['All'] + sorted(df['Priority'].unique().tolist())
-        selected_priority = st.sidebar.selectbox(
-            "Priority",
-            options=priorities,
-            help="Filter by priority level"
-        )
+        selected_priority = st.sidebar.selectbox("Priority", options=priorities)
         if selected_priority != 'All':
             filtered_df = filtered_df[filtered_df['Priority'] == selected_priority]
     
-    # Text search
-    search_term = st.sidebar.text_input(
-        "Search (Job ID, Name, Notes)",
-        help="Search in JobID, JobName, and Notes fields"
-    )
+    search_term = st.sidebar.text_input("🔍 Search")
     if search_term:
         search_mask = pd.Series([False] * len(filtered_df), index=filtered_df.index)
-        
-        if 'JobID' in filtered_df.columns:
-            search_mask |= filtered_df['JobID'].astype(str).str.contains(search_term, case=False, na=False)
-        if 'JobName' in filtered_df.columns:
-            search_mask |= filtered_df['JobName'].astype(str).str.contains(search_term, case=False, na=False)
-        if 'Notes' in filtered_df.columns:
-            search_mask |= filtered_df['Notes'].astype(str).str.contains(search_term, case=False, na=False)
-        
+        for col in ['JobID', 'JobName', 'Notes']:
+            if col in filtered_df.columns:
+                search_mask |= filtered_df[col].astype(str).str.contains(
+                    search_term, case=False, na=False
+                )
         filtered_df = filtered_df[search_mask]
     
     st.sidebar.markdown("---")
@@ -453,99 +703,68 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main():
-    """Main application entry point."""
-    st.title("🏭 Manufacturing Schedule Dashboard")
+    """Main application"""
+    render_header()
     
-    # Sidebar configuration
-    st.sidebar.title("⚙️ Configuration")
+    st.sidebar.markdown(f'<h2 style="color: {TEXT_PRIMARY}; font-size: 0.9375rem; font-weight: 600;">📡 Data Source</h2>', unsafe_allow_html=True)
     
-    # Data source selection
     data_source = st.sidebar.radio(
-        "Data Source",
+        "Connection Type",
         options=["Service Account", "Public CSV"],
-        help="Choose how to connect to Google Sheets. Use Service Account for editing."
+        help="Service Account required for editing"
     )
     
-    # Configure data source
     if data_source == "Service Account":
         config = DataSourceConfig(
             source_type='service_account',
             spreadsheet_id='1VzMAtlzb58NTsCoGXpsBpp1qrGrZab8lnQqFxSgS7yk',
             worksheet_name=st.sidebar.text_input(
                 "Worksheet Name", 
-                value="Job Status",
-                help="Name of the worksheet tab to read"
+                value="Job Status"
             )
         )
     else:
-        csv_url = st.sidebar.text_input(
-            "Published CSV URL",
-            help="Google Sheets CSV export URL (Read-only mode)"
-        )
-        config = DataSourceConfig(
-            source_type='public_csv',
-            csv_url=csv_url if csv_url else None
-        )
+        csv_url = st.sidebar.text_input("Published CSV URL")
+        config = DataSourceConfig(source_type='public_csv', csv_url=csv_url)
     
-    # Refresh controls
     st.sidebar.markdown("---")
-    if st.sidebar.button("🔄 Refresh Data", help="Clear cache and reload data"):
+    if st.sidebar.button("🔄 Refresh Data"):
         st.cache_data.clear()
         st.rerun()
     
-    # Fetch data
     try:
         df, last_refresh = fetch_schedule_data(config)
         
         if last_refresh:
-            st.sidebar.success(f"Last refresh: {last_refresh.strftime('%Y-%m-%d %H:%M:%S')}")
+            st.sidebar.success(f"🕒 {last_refresh.strftime('%I:%M %p')}")
         
         if df.empty:
-            st.warning("No data found in the sheet. Please check the configuration.")
+            st.warning("No data found. Check configuration.")
             return
         
-        # Show detected columns
-        with st.sidebar.expander("📋 Detected Columns", expanded=False):
+        with st.sidebar.expander("📋 Columns"):
             st.write(list(df.columns))
         
-        # Apply filters
         filtered_df = apply_filters(df)
         
-        # Export button
         if not filtered_df.empty:
             csv = filtered_df.to_csv(index=False)
             st.sidebar.download_button(
-                label="📥 Download Filtered Data",
+                "📥 Export CSV",
                 data=csv,
-                file_name=f"manufacturing_schedule_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                file_name=f"mhs_schedule_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv"
             )
         
-        # Main dashboard
-        st.markdown("---")
-        
-        # KPI Cards
+        st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
         render_kpi_cards(filtered_df)
-        
-        st.markdown("---")
-        
-        # Gantt Chart
-        st.subheader("📅 Schedule Timeline")
+        st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
         render_gantt_chart(filtered_df)
-        
-        st.markdown("---")
-        
-        # Editable Table
-        edited_df = render_editable_table(filtered_df, config)
-        
-        st.markdown("---")
-        
-        # Add Job Form
+        render_editable_table(filtered_df, config)
         render_add_job_form(config, df)
         
     except DataFetchError as e:
-        st.error(f"❌ Error fetching data: {str(e)}")
-        st.info("Please check your configuration and credentials in the sidebar.")
+        st.error(f"❌ {str(e)}")
     except Exception as e:
         st.error(f"❌ Unexpected error: {str(e)}")
         st.exception(e)
